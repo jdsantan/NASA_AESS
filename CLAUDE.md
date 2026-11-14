@@ -1,0 +1,5 @@
+1. **ASTRIA (HRP Health Monitor):** Prototipo de monitoreo médico autónomo *Offline-First* para astronautas en misiones de larga duración.
+2. **Stack Técnico:** Frontend en React 19 (Vite), Tailwind CSS v4, Recharts y Lucide-React. Backend REST en Node.js nativo (`node:http`, puerto 4000) con persistencia en `backend/data/db.json` y cola offline en `localStorage`.
+3. **Despliegue Local:** Terminal 1: `npm --prefix backend start`. Terminal 2: `npm install` y `npm run dev`.
+4. **Convenciones:** Simplicidad ante todo. Uso de colores tipo semáforo (Verde, Amarillo, Rojo) para evaluaciones visuales instantáneas basadas en umbrales de la NASA (HRP, HERA, Fluid Shifts, ARGOS, CSA CANS)[cite: 8, 132, 145, 150, 207].
+5. Las reglas de producto viven en `.specify/memory/constitution.md` y el estado del producto en `specs/README.md`[cite: 201].
