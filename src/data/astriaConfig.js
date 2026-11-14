@@ -38,10 +38,26 @@ export const FIELDS = [
 ];
 
 export const SYSTEMS = {
-  neuro: { name: "Sistema nervioso y ojos", icon: Brain, detail: "El sueño y el aislamiento influyen en la atención. En microgravedad, el desplazamiento de fluidos se estudia en relación con cambios oculares." },
-  cardio: { name: "Sistema cardiovascular", icon: Heart, detail: "El pulso y la presión aportan contexto sobre la adaptación cardiovascular. Las lecturas de este escenario se comparan con la referencia individual simulada." },
-  bone: { name: "Sistema musculoesquelético", icon: Bone, detail: "La reducción de carga mecánica afecta músculos y huesos. La curva ósea de la demo es sintética y la lista de ejercicio registra el cumplimiento de la rutina." },
-  resp: { name: "Sistema inmune y respiratorio", icon: Wind, detail: "El oxígeno de cabina describe el ambiente. La dosimetría personal registra exposición individual. Cada señal conserva su unidad y se revisa por separado." },
+  neuro: { 
+    name: "Sistema nervioso y ojos", 
+    icon: Brain, 
+    detail: "En microgravedad, los fluidos suben a la cabeza aumentando la presión intracraneal y alterando la visión (más de 2/3 de astronautas sufren cambios oculares según NASA Fluid Shifts)[cite: 150, 152]. Además, la desincronización circadiana reduce el sueño a ~6 h promedio (Estudio NASA HERA)[cite: 132]." 
+  },
+  cardio: { 
+    name: "Sistema cardiovascular", 
+    icon: Heart, 
+    detail: "El corazón y los vasos sanguíneos se adaptan a la redistribución de fluidos y a las transiciones entre 0g, 1/6g (Luna) y 3/8g (Marte), pudiendo causar mareos ortostáticos o desmayos al aterrizar (NASA HRP)[cite: 140, 142]." 
+  },
+  bone: { 
+    name: "Sistema musculoesquelético", 
+    icon: Bone, 
+    detail: "Sin carga gravitatoria, los huesos que soportan peso pierden entre 1% y 1.5% de densidad mineral al mes (NASA HRP / Wake Forest qCT Study), liberando calcio que eleva el riesgo de cálculos renales[cite: 140, 148]." 
+  },
+  resp: { 
+    name: "Sistema inmune y respiratorio", 
+    icon: Wind, 
+    detail: "Monitorea gases del hábitat (14 gases simulados en HERA) y radiación ionizante (GCR y tormentas solares SPE/CME)[cite: 106, 154]. La radiación y el estrés alteran las citoquinas y pueden reactivar virus latentes (NASA Immunology Study)[cite: 155, 156]." 
+  },
 };
 
 export const TASKS = [
