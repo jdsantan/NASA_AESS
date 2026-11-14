@@ -1,6 +1,10 @@
 import { createReport, getReports, syncReports } from "../controllers/reportController.js";
 
+import { getCrewLog, updateCrewLog } from "../controllers/crewLogController.js";
+
 const routes = new Map([
+  ["GET /api/crew-log", getCrewLog],
+  ["POST /api/crew-log", updateCrewLog],
   ["GET /api/reports", getReports],
   ["POST /api/reports", createReport],
   ["POST /api/reports/sync", syncReports],

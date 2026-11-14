@@ -1,15 +1,28 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { BASELINE, FIELDS, MISSIONS, PANEL, SCENARIOS, STORAGE, SYSTEMS, TASKS } from "./data/astriaConfig.js";
-import { assess, dateKey, historyFor, initialState, shiftDate } from "./utils/telemetryLogic.js";
-import { fetchReportsFromServer, syncPendingReports } from "./services/api.js";
+import React, { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { BASELINE, FIELDS, MISSIONS, PANEL, SCENARIOS, STORAGE, SYSTEMS, TASKS } from "./data/astriaConfig";
+import { assess, dateKey, historyFor, initialState, shiftDate } from "./utils/telemetryLogic";
+import { fetchReportsFromServer, syncPendingReports } from "./services/api";
 
-import Header from "./components/Header.jsx";
-import AcquisitionSidebar from "./components/AcquisitionSidebar.jsx";
-import BodyMap from "./components/BodyMap.jsx";
-import TrendChart from "./components/TrendChart.jsx";
-import TriageSidebar from "./components/TriageSidebar.jsx";
-import Badge from "./components/Badge.jsx";
-import GuideModal from "./components/GuideModal.jsx";
+import Header from "./components/Header";
+import AcquisitionSidebar from "./components/AcquisitionSidebar";
+import BodyMap from "./components/BodyMap";
+import TriageSidebar from "./components/TriageSidebar";
+import Badge from "./components/Badge";
+import GuideModal from "./components/GuideModal";
+import { CREW } from "./data/crew.js";
+import { crewTelemetry, CrewPage, DashboardSummary, MemberPage, MissionNav, PageHeading, TrendsPage } from "./pages/MissionPages.jsx";
+import { activitiesFor, ActivitiesPage, MemberRoutines } from "./pages/ActivitiesPage.jsx";
+import SourcesPage from "./pages/SourcesPage.jsx";
+import useCrewLog from "./hooks/useCrewLog.js";
+
+function subscribeToPage(onChange) {
+  window.addEventListener("hashchange", onChange);
+  return () => window.removeEventListener("hashchange", onChange);
+}
+
+function pageFromUrl() {
+  return window.location.hash.slice(1) || "/";
+}
 
 export default function App() {
   const [state, setState] = useState(initialState);
@@ -22,6 +35,19 @@ export default function App() {
   const [storageError, setStorageError] = useState(false);
   const [apiOnline, setApiOnline] = useState(false);
   const guide = useRef(null);
+  const main = useRef(null);
+  const page = useSyncExternalStore(subscribeToPage, pageFromUrl);
+  const lastPage = useRef(page);
+  const crewLog = useCrewLog(state.connection);
+  const crew = CREW.map((member) => crewTelemetry(member, activitiesFor(crewLog.log, member.id, day)));
+  const member = crew.find(({ id }) => page === "/integrantes/" + id);
+
+  useEffect(() => {
+    if (lastPage.current === page) return;
+    lastPage.current = page;
+    main.current?.focus();
+    window.scrollTo(0, 0);
+  }, [page]);
 
   const mission = MISSIONS[state.mission];
   const values = state.values;
@@ -144,57 +170,91 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#080e19] font-sans text-slate-100 selection:bg-cyan-400/25">
+    <div className="min-h-screen bg-slate-100 font-sans text-slate-900 selection:bg-blue-500/20">
       <Header
         state={state} mission={mission} readiness={readiness}
-        checkedCount={checked.length} streak={streak} apiOnline={apiOnline} storageError={storageError}
+        checkedCount={checked.length} streak={streak} apiOnline={apiOnline} storageError={storageError || crewLog.storageError} showReadiness={page === "/simulador"}
         onToggleLink={toggleLink}
         onChangeMission={(next) => setState((curr) => ({ ...curr, mission: next }))}
       />
 
-      <main className="mx-auto grid max-w-[1570px] items-start gap-5 px-4 py-6 sm:px-8 xl:grid-cols-[minmax(245px,0.85fr)_minmax(350px,1.4fr)_minmax(280px,1fr)]">
-        <AcquisitionSidebar
-          scenario={state.scenario} values={values}
-          image={image} imageError={imageError} note={note} imageRecord={state.imageRecord}
-          onChooseScenario={(sc) => setState((curr) => ({ ...curr, scenario: sc, values: { ...BASELINE, ...SCENARIOS[sc].values } }))}
-          onUpdateValue={(key, val) => setState((curr) => ({ ...curr, values: { ...curr.values, [key]: val } }))}
-          onOpenImage={openImage}
-          onImageLoadError={() => { setImage(null); setImageError("El navegador no pudo abrir el archivo como imagen."); }}
-          onChangeNote={setNote}
-          onSaveImageRecord={() => setState((curr) => ({
-            ...curr, imageRecord: { name: image.name, note: note.trim(), time: new Date().toISOString() },
-          }))}
-        />
+      <MissionNav page={page} />
 
-        <div className="grid min-w-0 gap-5">
-          <BodyMap statuses={statuses} selected={selected} onSelect={setSelected} />
-          <section className={PANEL} aria-live="polite">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <h2 className="flex items-center gap-2 text-base font-semibold">
-                <SystemIcon size={19} className="text-cyan-300" aria-hidden="true" /> {activeSystem.name}
-              </h2>
-              <Badge level={statuses[selected]} />
+      <main ref={main} tabIndex={-1} aria-labelledby="page-title" className="mx-auto max-w-7xl px-4 py-6 outline-none sm:px-8 sm:py-8">
+        {page === "/" ? (
+          <>
+            <PageHeading title="Dashboard de misión" back={null} />
+            <DashboardSummary mission={mission} scenario={state.scenario} alerts={alerts} missing={missing} pendingCount={pendingCount} crew={crew} />
+          </>
+        ) : page === "/simulador" ? (
+          <>
+            <PageHeading title="Simulador de misión" description="Edita la telemetría del escenario general y registra reportes de prueba." />
+            <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
+              <div className="grid min-w-0 gap-5">
+                <AcquisitionSidebar
+                  scenario={state.scenario} values={values}
+                  image={image} imageError={imageError} note={note} imageRecord={state.imageRecord}
+                  onChooseScenario={(sc) => setState((curr) => ({ ...curr, scenario: sc, values: { ...BASELINE, ...SCENARIOS[sc].values } }))}
+                  onUpdateValue={(key, val) => setState((curr) => ({ ...curr, values: { ...curr.values, [key]: val } }))}
+                  onOpenImage={openImage}
+                  onImageLoadError={() => { setImage(null); setImageError("El navegador no pudo abrir el archivo como imagen."); }}
+                  onChangeNote={setNote}
+                  onSaveImageRecord={() => setState((curr) => ({
+                    ...curr, imageRecord: { name: image.name, note: note.trim(), time: new Date().toISOString() },
+                  }))}
+                />
+
+                <details className="group min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                  <summary className="cursor-pointer rounded font-semibold text-blue-800 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600">
+                    Explorar mapa del escenario
+                  </summary>
+                  <div className="mt-4 grid gap-4">
+                    <BodyMap statuses={statuses} selected={selected} onSelect={setSelected} />
+                    <section className={PANEL} aria-live="polite">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <h2 className="flex items-center gap-2 text-base font-semibold text-slate-900">
+                          <SystemIcon size={19} className="text-blue-600" aria-hidden="true" /> {activeSystem.name}
+                        </h2>
+                        <Badge level={statuses[selected]} />
+                      </div>
+                      <p className="mt-2 text-sm leading-relaxed text-slate-600">{activeSystem.detail}</p>
+                      {selectedAlert && <p className="mt-2 text-sm font-semibold text-amber-700">{selectedAlert.title}</p>}
+                      {missingSystems[selected] && <p className="mt-2 text-sm font-semibold text-amber-700">Faltan lecturas de este sistema.</p>}
+                    </section>
+                  </div>
+                </details>
+              </div>
+
+              <TriageSidebar
+                alerts={alerts} missing={missing} checked={checked}
+                pendingCount={pendingCount} deliveredCount={state.reports.filter((report) => report.status === "delivered").length} latest={state.reports[0]}
+                onOpenGuide={() => guide.current?.showModal()}
+                onMarkTask={(key) => setState((curr) => {
+                  const tasks = curr.daily[day] || [];
+                  return {
+                    ...curr,
+                    daily: { ...curr.daily, [day]: tasks.includes(key) ? tasks.filter((t) => t !== key) : [...tasks, key] },
+                  };
+                })}
+                onSaveReport={saveReport}
+              />
             </div>
-            <p className="mt-2 text-sm leading-relaxed text-slate-300">{activeSystem.detail}</p>
-            {selectedAlert && <p className="mt-2 text-sm text-amber-200">{selectedAlert.title}</p>}
-            {missingSystems[selected] && <p className="mt-2 text-sm text-amber-200">Faltan lecturas de este sistema.</p>}
-          </section>
-          <TrendChart history={historyFor(state.scenario, values)} metric={metric} onMetric={setMetric} />
-        </div>
-
-        <TriageSidebar
-          alerts={alerts} missing={missing} checked={checked}
-          pendingCount={pendingCount} deliveredCount={state.reports.filter((report) => report.status === "delivered").length} latest={state.reports[0]}
-          onOpenGuide={() => guide.current?.showModal()}
-          onMarkTask={(key) => setState((curr) => {
-            const tasks = curr.daily[day] || [];
-            return {
-              ...curr,
-              daily: { ...curr.daily, [day]: tasks.includes(key) ? tasks.filter((t) => t !== key) : [...tasks, key] },
-            };
-          })}
-          onSaveReport={saveReport}
-        />
+          </>
+        ) : page === "/integrantes" ? (
+          <CrewPage crew={crew} />
+        ) : member ? (
+          <MemberPage key={member.id} member={member}>
+            <MemberRoutines member={member} log={crewLog.log} day={day} onAction={crewLog.onAction} />
+          </MemberPage>
+        ) : page === "/tendencias" ? (
+          <TrendsPage scenario={state.scenario} history={historyFor(state.scenario, values)} metric={metric} onMetric={setMetric} />
+        ) : page === "/actividades" ? (
+          <ActivitiesPage log={crewLog.log} day={day} onAction={crewLog.onAction} pending={crewLog.pending} />
+        ) : page === "/fuentes" ? (
+          <SourcesPage />
+        ) : (
+          <PageHeading title="Página no encontrada" />
+        )}
       </main>
 
       <GuideModal dialogRef={guide} />

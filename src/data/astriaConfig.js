@@ -1,11 +1,10 @@
 import { Bone, Brain, Heart, Wind } from "lucide-react";
 
 export const STORAGE = "astria-monitor-v1";
-export const PANEL = "rounded-2xl border border-slate-800 bg-[#0e1727] p-4 shadow-lg shadow-black/15 sm:p-5";
-export const LABEL = "block text-xs font-medium text-slate-300";
-export const INPUT = "mt-1.5 w-full rounded-lg border border-slate-700 bg-[#091221] px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400/50";
-export const BUTTON = "rounded-lg border border-slate-700 px-3 py-2 text-sm font-medium text-slate-200 transition hover:border-cyan-400/70 hover:bg-cyan-400/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-400 disabled:opacity-50";
-
+export const PANEL = "rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5 text-slate-900";
+export const LABEL = "block text-xs font-semibold uppercase tracking-wider text-slate-500";
+export const INPUT = "mt-1.5 w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-blue-600 focus:bg-white focus:ring-2 focus:ring-blue-600/20";
+export const BUTTON = "rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-2xs transition hover:border-blue-600 hover:bg-blue-50/60 hover:text-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:opacity-50";
 export const MISSIONS = {
   iss: { name: "Estación Espacial · ISS", delay: 0, latency: "0 s (redondeado)", gravity: "≈ 0 g" },
   transit: { name: "Nave en tránsito", delay: 720, latency: "12 min", gravity: "≈ 0 g" },
@@ -68,7 +67,7 @@ export const TASKS = [
 ];
 
 export const TOOLS = {
-  ok: { text: "Óptimo", tone: "border-emerald-400/30 bg-emerald-400/10 text-emerald-300" },
-  warn: { text: "Precaución", tone: "border-amber-400/30 bg-amber-400/10 text-amber-200" },
-  critical: { text: "Crítico", tone: "border-rose-400/35 bg-rose-400/10 text-rose-300" },
+  ok: { text: "Óptimo", tone: "border-emerald-500/40 bg-emerald-50 text-emerald-800" },
+  warn: { text: "Precaución", tone: "border-amber-500/40 bg-amber-50 text-amber-900" },
+  critical: { text: "Crítico", tone: "border-rose-500/40 bg-rose-50 text-rose-800" },
 };
