@@ -1,4 +1,4 @@
-import { BASELINE, MISSIONS, SCENARIOS, STORAGE } from "../data/astriaConfig.js";
+import { BASELINE, CABIN_OXYGEN_REFERENCE, MISSIONS, SCENARIOS, STORAGE } from "../data/astriaConfig.js";
 
 export function dateKey(date = new Date()) {
   return [date.getFullYear(), date.getMonth() + 1, date.getDate()].map(
@@ -35,9 +35,12 @@ export function initialState() {
   }
 }
 
+export const stripCitation = (text) => text.replace(/\s*\[cite:[^\]]*\]|\s*``/gi, "");
+
 export function assess(values, scenario, checked) {
   const alerts = [];
-  const add = (group, level, title, steps, fields) => alerts.push({ group, level, title, steps, fields });
+  const add = (group, level, title, steps, fields) =>
+    alerts.push({ group, level, title: stripCitation(title), steps: steps.map(stripCitation), fields });
   const number = (field) => values[field] === "" || values[field] == null ? null : Number(values[field]);
   const oxygen = number("oxygen");
   const radiation = number("radiation");
@@ -48,15 +51,15 @@ export function assess(values, scenario, checked) {
   const glucose = number("glucose");
   const temperature = number("temperature");
 
-  if (oxygen !== null && Math.abs(oxygen - BASELINE.oxygen) >= 2) {
-    add("resp", "critical", "Alerta de O₂ en cabina · Pre-EVA (Fuente: NASA HERA Environmental Standards)[cite: 154, 219]", [
+  if (oxygen !== null && (oxygen < CABIN_OXYGEN_REFERENCE || oxygen >= BASELINE.oxygen + 2)) {
+    add("resp", "critical", "Alerta de O₂ en cabina · Pre-EVA", [
       "ACCIÓN INMEDIATA: Suspender preparación de caminata espacial (EVA) y activar suministro de O₂ suplementario.",
       "Verificar sellos de presión del compartimento y calibración de los 14 gases ambientales del hábitat[cite: 154].",
       "CRITERIO DE ESCALADO: Enviar paquete de telemetría prioritario al Cirujano de Vuelo e Ingeniero de Soporte Vital en Tierra[cite: 4, 207].",
     ], ["oxygen"]);
   }
   if (radiation !== null && radiation - BASELINE.radiation >= 10) {
-    add("resp", "critical", "Pico de Radiación SPE/CME (Fuente: NASA SRAG / CSA CANS Dosimetry)[cite: 8, 30]", [
+    add("resp", "critical", "Pico de Radiación SPE/CME", [
       "ACCIÓN INMEDIATA: Cancelar toda actividad extravehicular (EVA) y trasladarse al refugio de tormentas de la nave (zona blindada con agua y bloques de polietileno RFX1 ricos en hidrógeno para frenar neutrones secundarios)[cite: 28, 61, 62, 117].",
       "Verificar lectura del dosímetro personal y del espectrómetro autónomo de neutrones (CANS)[cite: 8, 60].",
       "Ingerir contramedidas dietéticas antioxidantes (vitaminas C y A, pectina y omega-3) para mitigar daño al ADN por radicales libres[cite: 63].",
@@ -64,18 +67,19 @@ export function assess(values, scenario, checked) {
     ], ["radiation"]);
   }
   if (values.visual) {
-    add("neuro", "warn", "Síndrome Neuro-Ocular / Desplazamiento de Fluidos (Fuente: NASA Fluid Shifts Study)[cite: 150, 152]", [
+    add("neuro", "warn", "Síndrome Neuro-Ocular / Desplazamiento de Fluidos", [
       "Programar sesión con el traje ruso de presión negativa para la parte inferior del cuerpo (Chibis / LBNP) para revertir el flujo de líquidos hacia las piernas[cite: 150, 151].",
       "Realizar medición no invasiva de presión intracraneal mediante ondas acústicas en el oído interno (dispositivo CCFP / DPOAE) y escaneo ocular con cámara OCT portátil[cite: 151, 152].",
       "CRITERIO DE ESCALADO: Adjuntar imagen de ultrasonido ocular en el panel izquierdo y enviar al Cirujano de Vuelo para evaluación diferida[cite: 3, 138, 207].",
     ], ["visual"]);
   }
-  if ((sleep !== null && BASELINE.sleep - sleep >= 1.5) || values.mood === "bajo") {
-    add("neuro", "warn", "Déficit de Sueño y Aislamiento (Fuente: NASA Ames Actigraphy / HERA Study)[cite: 132]", [
+  const moodChanged = ["bajo", "fatiga", "estrés"].includes(values.mood);
+  if ((sleep !== null && BASELINE.sleep - sleep >= 1.5) || moodChanged) {
+    add("neuro", "warn", "Déficit de Sueño y Aislamiento", [
       "Iniciar sesión de fototerapia LED para realinear el ritmo circadiano (nota científica: recuperar una desregulación circadiana requiere hasta 13 h de descanso acumulado)[cite: 121, 132].",
       "Dedicar 20 minutos al cuidado del cultivo espacial (sistema botánico Veggie / mostaza mizuna) para estimulación sensorial y mejora del estado de ánimo[cite: 126, 127].",
       "Registrar pensamientos en el diario personal de la misión para liberar frustración y prevenir fallos de comunicación en el equipo[cite: 125, 126].",
-    ], [sleep !== null && BASELINE.sleep - sleep >= 1.5 && "sleep", values.mood === "bajo" && "mood"].filter(Boolean));
+    ], [sleep !== null && BASELINE.sleep - sleep >= 1.5 && "sleep", moodChanged && "mood"].filter(Boolean));
   }
   const invertedPressure = bloodPressure !== null && diastolic !== null && diastolic >= bloodPressure;
   const cardioFields = [
@@ -84,7 +88,7 @@ export function assess(values, scenario, checked) {
     (invertedPressure || (diastolic !== null && Math.abs(diastolic - BASELINE.diastolic) >= 12)) && "diastolic",
   ].filter(Boolean);
   if (cardioFields.length) {
-    add("cardio", "warn", "Anomalía Cardiovascular / Riesgo Ortostático (Fuente: NASA HRP Cardiovascular)[cite: 140, 219]", [
+    add("cardio", "warn", "Anomalía Cardiovascular / Riesgo Ortostático", [
       "Guardar reposo, hidratarse (meta: 2.5 L diarios) y repetir la medición con el manguito de presión tras 5 minutos.",
       "Si ocurre tras transición gravitatoria (aterrizaje en Marte 3/8g o Luna 1/6g), evitar cambios bruscos de postura y usar prendas de compresión[cite: 142, 146].",
       "CRITERIO DE ESCALADO: Si persiste en segunda lectura o se acompaña de dolor torácico, activar protocolo de emergencia a bordo y transmitir alerta roja a Tierra[cite: 207].",
@@ -95,32 +99,16 @@ export function assess(values, scenario, checked) {
     temperature !== null && Math.abs(temperature - BASELINE.temperature) >= 1 && "temperature",
   ].filter(Boolean);
   if (metabolicFields.length) {
-    add("resp", "warn", "Alteración Metabólica o Inmunológica (Fuente: NASA Spaceflight Immunology)[cite: 10, 155, 156]", [
+    add("resp", "warn", "Alteración Metabólica o Inmunológica", [
       "La microgravedad induce resistencia a la insulina y el estrés altera las citoquinas, pudiendo reactivar virus latentes[cite: 10, 155, 156].",
       "Confirmar temperatura corporal, reforzar hidratación y registrar muestra de saliva/orina en bitácora médica[cite: 156].",
     ], metabolicFields);
   }
   if (scenario === "fatigue" && !checked.includes("exercise")) {
-    add("bone", "warn", "Riesgo de Pérdida Ósea y Cálculos Renales (Fuente: NASA ARGOS / Wake Forest Study)[cite: 140, 145, 148]", [
+    add("bone", "warn", "Riesgo de Pérdida Ósea y Cálculos Renales", [
       "Completar 1.5 h de ejercicio resistivo antigravedad para mitigar la pérdida del 1% al 1.5% mensual de masa ósea en columna y fémur[cite: 140, 143, 148].",
       "Asegurar ingesta de suplemento de Vitamina D (inhibida por el blindaje UV de la nave) y abundante agua para evitar cálculos renales por exceso de calcio[cite: 65, 140].",
     ], ["exercise"]);
   }
   return alerts.sort((a, b) => Number(b.level === "critical") - Number(a.level === "critical"));
-}
-
-export function historyFor(scenario, values) {
-  const today = new Date();
-  const fmt = new Intl.DateTimeFormat("es", { day: "numeric", month: "short" });
-  const templates = {
-    radiation: [1.5, 2.2, 3.3, 4.1, 5.0, 6.1],
-    sleep: scenario === "fatigue" ? [8, 7.5, 7.3, 6.7, 6.0, 5.4] : [7.7, 7.3, 8.1, 7.7, 8, 7.4],
-    bone: [99.9, 99.8, 99.7, 99.6, 99.5, 99.4],
-  };
-  return Array.from({ length: 7 }, (_, index) => ({
-    day: fmt.format(shiftDate(today, index - 6)),
-    radiation: index === 6 ? (values.radiation === "" ? null : values.radiation) : templates.radiation[index],
-    sleep: index === 6 ? (values.sleep === "" ? null : values.sleep) : templates.sleep[index],
-    bone: index === 6 ? SCENARIOS[scenario].bone : templates.bone[index],
-  }));
 }

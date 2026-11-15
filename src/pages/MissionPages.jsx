@@ -3,7 +3,8 @@ import { Activity, ArrowLeft, Bell, BookOpen, ChartNoAxesCombined, ChevronRight,
 import Badge from "../components/Badge.jsx";
 import BodyMap from "../components/BodyMap.jsx";
 import TrendChart from "../components/TrendChart.jsx";
-import { BASELINE, FIELDS, PANEL, SCENARIOS, SYSTEMS, TOOLS } from "../data/astriaConfig.js";
+import { CREW } from "../data/crew.js";
+import { BASELINE, FIELDS, INPUT, LABEL, PANEL, SCENARIOS, SYSTEMS, TOOLS } from "../data/astriaConfig.js";
 import { assess } from "../utils/telemetryLogic.js";
 
 const focus = "outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2";
@@ -32,16 +33,16 @@ export function MissionNav({ page }) {
   const links = [
     ["/", "Dashboard", Activity],
     ["/integrantes", "Integrantes", Users],
+    ["/registro", "Registro", FlaskConical],
     ["/tendencias", "Tendencias", ChartNoAxesCombined],
     ["/actividades", "Actividades", MessageSquare],
     ["/fuentes", "Fuentes", BookOpen],
-    ["/simulador", "Simulador", FlaskConical],
   ];
   return (
     <nav aria-label="Navegación principal" className="border-b border-slate-200 bg-white">
       <div className="mx-auto flex max-w-7xl flex-wrap gap-1 px-4 py-2 sm:px-8">
         {links.map(([path, label, Icon]) => {
-          const active = page === path || (path === "/integrantes" && page.startsWith(path + "/"));
+          const active = page === path || (path === "/registro" && page === "/simulador") || (path === "/integrantes" && page.startsWith(path + "/"));
           return (
             <a key={path} href={"#" + path} aria-current={active ? "page" : undefined}
               className={`flex min-h-10 items-center gap-2 rounded-lg px-3 text-sm font-semibold ${focus} ${active ? "bg-blue-50 text-blue-800" : "text-slate-600 hover:bg-slate-100 hover:text-slate-950"}`}>
@@ -73,28 +74,28 @@ export function PageHeading({ title, description, back = "/", backLabel = "Volve
   );
 }
 
-export function DashboardSummary({ mission, scenario, alerts, missing, pendingCount, crew }) {
+export function DashboardSummary({ mission, scenario, alerts, missing, activeName, pendingCount, savedCount, crew }) {
   const level = alerts[0]?.level ?? (missing.length ? "warn" : "ok");
   const critical = crew.flatMap((member) => member.alerts
     .filter((alert) => alert.level === "critical").map((alert) => ({ member, alert })));
   return (
     <div className="grid gap-5">
-      <section className={PANEL} aria-label="Escenario general">
+      <section className="rounded-2xl border border-slate-800 bg-gradient-to-br from-slate-950 to-blue-950 p-5 text-white shadow-md sm:p-7" aria-label="Escenario general">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p className="text-sm font-semibold text-slate-600">{mission.name} · {mission.gravity}</p>
-            <h3 className="mt-1 text-xl font-semibold">{SCENARIOS[scenario].title}</h3>
-            <p className="mt-2 text-sm text-slate-600">{alerts.length} {alerts.length === 1 ? "aviso del simulador" : "avisos del simulador"} · {pendingCount} {pendingCount === 1 ? "reporte pendiente" : "reportes pendientes"}</p>
-            {alerts[0] && <p className="mt-1 text-sm font-medium text-slate-800">{alertTitle(alerts[0])}</p>}
+            <p className="text-sm font-medium text-blue-200">{mission.name} · {mission.gravity} · {activeName}</p>
+            <h3 className="mt-1 text-2xl font-semibold tracking-tight">{SCENARIOS[scenario].title}</h3>
+            <p className="mt-2 text-sm text-slate-200">{alerts.length} {alerts.length === 1 ? "aviso del registro" : "avisos del registro"} · {savedCount == null ? `${pendingCount} ${pendingCount === 1 ? "reporte pendiente" : "reportes pendientes"}` : `${savedCount} ${savedCount === 1 ? "registro guardado" : "registros guardados"}`}</p>
+            {alerts[0] && <p className="mt-1 text-sm font-medium text-slate-100">{alertTitle(alerts[0])}</p>}
           </div>
           <div className="flex flex-wrap items-center justify-end gap-3">
             <Badge level={level} />
-            <a className={`rounded py-1 text-sm font-semibold text-blue-800 hover:underline ${focus}`} href="#/simulador">Abrir simulador</a>
+            <a className={`rounded-lg bg-white px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-blue-100 ${focus}`} href="#/registro">Registrar lecturas</a>
           </div>
         </div>
       </section>
       <section className={PANEL} aria-labelledby="attention-title">
-        <h3 id="attention-title" className="flex items-center gap-2 text-lg font-semibold"><Bell size={18} aria-hidden="true" /> Notificaciones de misión</h3>
+        <h3 id="attention-title" className="flex items-center gap-2 text-lg font-semibold"><Bell size={18} aria-hidden="true" /> Avisos prioritarios</h3>
         <div className="mt-3 space-y-2" aria-live="assertive" aria-relevant="additions text">
           {critical.length === 0 && <p className="text-sm text-slate-600">Sin avisos críticos en la tripulación.</p>}
           {critical.map(({ member, alert }) => (
@@ -119,14 +120,14 @@ export function DashboardSummary({ mission, scenario, alerts, missing, pendingCo
   );
 }
 
-export function crewTelemetry(member, routines) {
+export function crewTelemetry(member, routines, liveReadings) {
   const scenario = SCENARIOS[member.scenario];
   const checked = routines.filter(({ done }) => done).map(({ id }) => id);
-  if (!routines.some(({ id }) => id === "exercise")) checked.push("exercise");
   const exercise = routines.find(({ id }) => id === "exercise");
   const readings = {
     ...BASELINE,
     ...scenario.values,
+    ...liveReadings,
     bone: scenario.bone,
     exercise: exercise ? (exercise.done ? "Completada" : "Pendiente") : "Sin asignar",
   };
@@ -137,7 +138,7 @@ export function crewTelemetry(member, routines) {
 export function CrewPage({ crew }) {
   return (
     <>
-      <PageHeading title="Integrantes" description="Selecciona una ficha para revisar el estado, las observaciones y los indicadores de la tripulación simulada." />
+      <PageHeading title="Integrantes" description="Selecciona una ficha para revisar el estado, las observaciones y los indicadores de la tripulación de ejemplo." />
       <CrewCards crew={crew} />
     </>
   );
@@ -186,12 +187,12 @@ function RecommendationPanel({ alerts }) {
         <ChevronRight size={18} aria-hidden="true" className="ml-auto transition group-open:rotate-90" />
       </summary>
       <div className="mt-4 space-y-4 border-t border-slate-200 pt-4">
-        <p className="text-sm text-slate-600">Orientación para este escenario simulado.</p>
+        <p className="text-sm text-slate-600">Pasos de revisión para este caso de ejemplo.</p>
         {groups.length === 0 && <p className="text-sm text-slate-700">Continúa con el registro diario. Documenta cualquier cambio que aparezca en la siguiente medición.</p>}
         {groups.map((group) => (
           <section key={group}>
             <h3 className="font-semibold text-slate-950">{SYSTEMS[group].name}</h3>
-            <p className="mt-1 text-sm text-slate-700">La simulación marcó {alerts.filter((alert) => alert.group === group).map(alertTitle).join(" · ")}.</p>
+            <p className="mt-1 text-sm text-slate-700">La revisión señaló {alerts.filter((alert) => alert.group === group).map(alertTitle).join(" · ")}.</p>
             <ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-relaxed text-slate-700">
               {GUIDANCE[group].map((step) => <li key={step}>{step}</li>)}
             </ul>
@@ -213,7 +214,7 @@ export function MemberPage({ member, children }) {
 
   return (
     <>
-      <PageHeading title={member.name} description={`Perfil simulado · ${SCENARIOS[member.scenario].title}`} back="/integrantes" backLabel="Volver a integrantes">
+      <PageHeading title={member.name} description={`Perfil de ejemplo · ${SCENARIOS[member.scenario].title}`} back="/integrantes" backLabel="Volver a integrantes">
         <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2">
           <span className="text-sm font-semibold text-slate-700">Estado actual</span><Badge level={level} />
         </div>
@@ -259,11 +260,25 @@ export function MemberPage({ member, children }) {
   );
 }
 
-export function TrendsPage({ scenario, history, metric, onMetric }) {
+export function TrendsPage({ active, onSelectMember, history, metric, onMetric }) {
   return (
     <>
-      <PageHeading title="Tendencias" description={`Historial del escenario simulado · ${SCENARIOS[scenario].title}`} />
+      <PageHeading title="Tendencias">
+        <label className={`${LABEL} w-full sm:w-56`}>Integrante
+          <select className={INPUT} value={active.id} onChange={(event) => onSelectMember(event.currentTarget.value)}>
+            {CREW.map(({ id, name }) => <option key={id} value={id}>{name}</option>)}
+          </select>
+        </label>
+      </PageHeading>
       <TrendChart history={history} metric={metric} onMetric={onMetric} />
+      {metric === "radiation" && (
+        <p className="mt-4 text-sm text-slate-600">
+          Datos ambientales de referencia.{" "}
+          <a className={`rounded font-semibold text-blue-800 hover:underline ${focus}`}
+            href="https://visualization.osdr.nasa.gov/radlab/api/?spacecraft=ISS&instrument=DosTel&timestamp%3E=2022-04-01T23%3A00&timestamp%3C2022-04-02T01%3A05&absorbed_dose_rate%3E2&flux&latitude&longitude&altitude&b&l&format=html"
+            target="_blank" rel="noreferrer">Consultar tasas de dosis de la EEI en NASA RadLab</a>.
+        </p>
+      )}
     </>
   );
 }

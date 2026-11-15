@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { BASELINE, FIELDS, MISSIONS, PANEL, SCENARIOS, STORAGE, SYSTEMS, TASKS } from "./data/astriaConfig";
-import { assess, dateKey, historyFor, initialState, shiftDate } from "./utils/telemetryLogic";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { FIELDS, INPUT, LABEL, MISSIONS, PANEL, STORAGE, SYSTEMS, TASKS } from "./data/astriaConfig";
+import { dateKey, initialState, shiftDate } from "./utils/telemetryLogic";
 import { fetchReportsFromServer, syncPendingReports } from "./services/api";
 
 import Header from "./components/Header";
@@ -9,11 +9,17 @@ import BodyMap from "./components/BodyMap";
 import TriageSidebar from "./components/TriageSidebar";
 import Badge from "./components/Badge";
 import GuideModal from "./components/GuideModal";
+import { PUBLIC_SITE } from "./data/edition.js";
+import ReportHistory from "./components/ReportHistory.jsx";
 import { CREW } from "./data/crew.js";
 import { crewTelemetry, CrewPage, DashboardSummary, MemberPage, MissionNav, PageHeading, TrendsPage } from "./pages/MissionPages.jsx";
-import { activitiesFor, ActivitiesPage, MemberRoutines } from "./pages/ActivitiesPage.jsx";
+import { activitiesFor, ActivitiesPage, MemberRoutines, RoutineList } from "./pages/ActivitiesPage.jsx";
 import SourcesPage from "./pages/SourcesPage.jsx";
 import useCrewLog from "./hooks/useCrewLog.js";
+import CrewIndicators from "./components/CrewIndicators.jsx";
+import { applyScenario, cabinFor, historyForMember, initializeReadings, readingsFor, sampleTelemetry, updateMemberReading } from "./utils/sensorReadings.js";
+
+const ROUTINE_IDS = new Set(TASKS.map(([id]) => id));
 
 function subscribeToPage(onChange) {
   window.addEventListener("hashchange", onChange);
@@ -25,9 +31,10 @@ function pageFromUrl() {
 }
 
 export default function App() {
-  const [state, setState] = useState(initialState);
+  const [state, setState] = useState(() => initializeReadings(initialState()));
   const [selected, setSelected] = useState("neuro");
-  const [metric, setMetric] = useState("radiation");
+  const [live, setLive] = useState(false);
+  const [trendMetric, setTrendMetric] = useState("radiation");
   const [day, setDay] = useState(dateKey);
   const [image, setImage] = useState(null);
   const [imageError, setImageError] = useState("");
@@ -38,10 +45,29 @@ export default function App() {
   const main = useRef(null);
   const page = useSyncExternalStore(subscribeToPage, pageFromUrl);
   const lastPage = useRef(page);
-  const crewLog = useCrewLog(state.connection);
-  const crew = CREW.map((member) => crewTelemetry(member, activitiesFor(crewLog.log, member.id, day)));
+  const crewLog = useCrewLog(state.connection, PUBLIC_SITE);
+  const active = CREW.find(({ id }) => id === state.activeMember) ?? CREW[0];
+  const crew = CREW.map((member) => {
+    const reading = readingsFor(state, member);
+    return crewTelemetry({ ...member, scenario: reading.scenario }, activitiesFor(crewLog.log, member.id, day), reading.values);
+  });
   const member = crew.find(({ id }) => page === "/integrantes/" + id);
+  const reading = readingsFor(state, active);
 
+  const isRegister = page === "/registro" || page === "/simulador";
+
+  useEffect(() => {
+    if (!isRegister) {
+      setLive(false);
+      return;
+    }
+    if (!live) return;
+    const timer = window.setInterval(() => {
+      const now = new Date();
+      setState((current) => sampleTelemetry(current, active, now));
+    }, 3000);
+    return () => window.clearInterval(timer);
+  }, [isRegister, live, active]);
   useEffect(() => {
     if (lastPage.current === page) return;
     lastPage.current = page;
@@ -50,10 +76,11 @@ export default function App() {
   }, [page]);
 
   const mission = MISSIONS[state.mission];
-  const values = state.values;
-  const checked = state.daily[day] || [];
-  const alerts = assess(values, state.scenario, checked);
-  const readiness = Math.round((100 * checked.length) / TASKS.length);
+  const { values, scenario } = reading;
+  const routines = activitiesFor(crewLog.log, active.id, day);
+  const checked = routines.filter(({ done }) => done).map(({ id }) => id);
+  const alerts = crew.find(({ id }) => id === active.id).alerts;
+  const readiness = routines.length ? Math.round((100 * checked.length) / routines.length) : 0;
   const missing = FIELDS.filter(({ key }) => values[key] === "");
 
   const missingSystems = {
@@ -75,14 +102,16 @@ export default function App() {
 
   let streak = 0;
   const now = new Date();
-  if (checked.length !== TASKS.length) now.setTime(shiftDate(now, -1).getTime());
-  while (state.daily[dateKey(shiftDate(now, -streak))]?.length === TASKS.length) streak += 1;
+  if (checked.length !== routines.length) now.setTime(shiftDate(now, -1).getTime());
+  while (routines.length && routines.every(({ id }) =>
+    crewLog.log.completed[dateKey(shiftDate(now, -streak))]?.[active.id]?.includes(id),
+  )) streak += 1;
 
   const pending = useMemo(() => state.reports.filter((report) => report.status === "pending"), [state.reports]);
   const pendingCount = pending.length;
 
   useEffect(() => {
-    if (!state.connection) {
+    if (PUBLIC_SITE || !state.connection) {
       setApiOnline(false);
       return;
     }
@@ -155,12 +184,14 @@ export default function App() {
       id: globalThis.crypto?.randomUUID?.() ?? (String(Date.now()) + "-" + Math.random().toString(36).slice(2)),
       created: new Date().toISOString(),
       mission: state.mission,
-      scenario: state.scenario,
+      scenario,
+      memberId: active.id,
       values,
-      checked,
-      image: state.imageRecord,
+      checked: checked.filter((id) => ROUTINE_IDS.has(id)),
+      image: reading.imageRecord ?? null,
       findings: alerts.map((alert) => alert.title),
-      status: "pending",
+      source: reading.lastSample ? (reading.source === "manual" ? "mixed" : "auto") : reading.source,
+      status: PUBLIC_SITE ? "local" : "pending",
     };
     setState((current) => ({ ...current, reports: [report, ...current.reports] }));
   }
@@ -169,11 +200,49 @@ export default function App() {
     setState((current) => ({ ...current, connection: !current.connection }));
   }
 
+  function updateReading(update, time) {
+    setState((current) => updateMemberReading(current, active, update, time));
+  }
+
+  function selectMember(id) {
+    setImage(null);
+    setImageError("");
+    setNote("");
+    setState((current) => ({ ...current, activeMember: id }));
+  }
+
+  const activePicker = (
+    <label className={"w-full max-w-xs " + LABEL}>
+      Astronauta activo
+      <select className={INPUT} value={active.id} onChange={(event) => selectMember(event.currentTarget.value)}>
+        {CREW.map(({ id, name }) => <option key={id} value={id}>{name}</option>)}
+      </select>
+    </label>
+  );
+
+  const indicatorProps = {
+    values,
+    live,
+    lastSample: reading.lastSample,
+    onToggleLive: () => setLive((current) => !current),
+    onUpdateValue: (key, val) => updateReading((current) => ({
+      ...current, source: "manual", values: { ...current.values, [key]: val },
+    }), new Date().toISOString()),
+  };
+
+  const routinePanel = (
+    <section className={PANEL} aria-label={`Rutinas diarias de ${active.name}`}>
+      <h2 className="text-lg font-semibold text-slate-900">Rutinas diarias</h2>
+      <p className="mt-1 text-sm font-medium text-slate-600">{active.name}</p>
+      <RoutineList key={active.id} member={active} log={crewLog.log} day={day} onAction={crewLog.onAction} />
+    </section>
+  );
+
   return (
     <div className="min-h-screen bg-slate-100 font-sans text-slate-900 selection:bg-blue-500/20">
       <Header
-        state={state} mission={mission} readiness={readiness}
-        checkedCount={checked.length} streak={streak} apiOnline={apiOnline} storageError={storageError || crewLog.storageError} showReadiness={page === "/simulador"}
+        state={state} mission={mission} publicSite={PUBLIC_SITE} readiness={readiness}
+        checkedCount={checked.length} assignedCount={routines.length} streak={streak} apiOnline={apiOnline} storageError={storageError || crewLog.storageError} showReadiness={isRegister}
         onToggleLink={toggleLink}
         onChangeMission={(next) => setState((curr) => ({ ...curr, mission: next }))}
       />
@@ -183,30 +252,38 @@ export default function App() {
       <main ref={main} tabIndex={-1} aria-labelledby="page-title" className="mx-auto max-w-7xl px-4 py-6 outline-none sm:px-8 sm:py-8">
         {page === "/" ? (
           <>
-            <PageHeading title="Dashboard de misión" back={null} />
-            <DashboardSummary mission={mission} scenario={state.scenario} alerts={alerts} missing={missing} pendingCount={pendingCount} crew={crew} />
+            <PageHeading title="Dashboard de misión" back={null}>{activePicker}</PageHeading>
+            <DashboardSummary mission={mission} scenario={scenario} alerts={alerts} missing={missing} activeName={active.name} pendingCount={pendingCount} savedCount={PUBLIC_SITE ? state.reports.length : undefined} crew={crew} />
+            <div className="mt-5 grid items-start gap-5 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
+              <CrewIndicators crew={crew} oxygen={cabinFor(state).oxygen} />
+              {routinePanel}
+            </div>
           </>
-        ) : page === "/simulador" ? (
+        ) : isRegister ? (
           <>
-            <PageHeading title="Simulador de misión" description="Edita la telemetría del escenario general y registra reportes de prueba." />
+            <PageHeading title="Registro de lecturas" description="Revisa las lecturas automáticas y guarda un registro del astronauta activo.">
+              {activePicker}
+            </PageHeading>
             <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
               <div className="grid min-w-0 gap-5">
                 <AcquisitionSidebar
-                  scenario={state.scenario} values={values}
-                  image={image} imageError={imageError} note={note} imageRecord={state.imageRecord}
-                  onChooseScenario={(sc) => setState((curr) => ({ ...curr, scenario: sc, values: { ...BASELINE, ...SCENARIOS[sc].values } }))}
-                  onUpdateValue={(key, val) => setState((curr) => ({ ...curr, values: { ...curr.values, [key]: val } }))}
+                  scenario={scenario} {...indicatorProps}
+                  image={image} imageError={imageError} note={note} imageRecord={reading.imageRecord}
+                  onChooseScenario={(sc) => {
+                    const now = new Date();
+                    setState((current) => applyScenario(current, active, sc, now));
+                  }}
                   onOpenImage={openImage}
                   onImageLoadError={() => { setImage(null); setImageError("El navegador no pudo abrir el archivo como imagen."); }}
                   onChangeNote={setNote}
-                  onSaveImageRecord={() => setState((curr) => ({
-                    ...curr, imageRecord: { name: image.name, note: note.trim(), time: new Date().toISOString() },
+                  onSaveImageRecord={() => updateReading((current) => ({
+                    ...current, imageRecord: { name: image.name, note: note.trim(), time: new Date().toISOString() },
                   }))}
                 />
 
                 <details className="group min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                   <summary className="cursor-pointer rounded font-semibold text-blue-800 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600">
-                    Explorar mapa del escenario
+                    Explorar mapa de lecturas
                   </summary>
                   <div className="mt-4 grid gap-4">
                     <BodyMap statuses={statuses} selected={selected} onSelect={setSelected} />
@@ -226,18 +303,14 @@ export default function App() {
               </div>
 
               <TriageSidebar
-                alerts={alerts} missing={missing} checked={checked}
+                alerts={alerts} missing={missing} publicSite={PUBLIC_SITE}
                 pendingCount={pendingCount} deliveredCount={state.reports.filter((report) => report.status === "delivered").length} latest={state.reports[0]}
                 onOpenGuide={() => guide.current?.showModal()}
-                onMarkTask={(key) => setState((curr) => {
-                  const tasks = curr.daily[day] || [];
-                  return {
-                    ...curr,
-                    daily: { ...curr.daily, [day]: tasks.includes(key) ? tasks.filter((t) => t !== key) : [...tasks, key] },
-                  };
-                })}
                 onSaveReport={saveReport}
-              />
+              >
+                {routinePanel}
+              </TriageSidebar>
+              <div className="lg:col-span-2"><ReportHistory reports={state.reports} /></div>
             </div>
           </>
         ) : page === "/integrantes" ? (
@@ -247,9 +320,9 @@ export default function App() {
             <MemberRoutines member={member} log={crewLog.log} day={day} onAction={crewLog.onAction} />
           </MemberPage>
         ) : page === "/tendencias" ? (
-          <TrendsPage scenario={state.scenario} history={historyFor(state.scenario, values)} metric={metric} onMetric={setMetric} />
+          <TrendsPage active={active} onSelectMember={selectMember} history={historyForMember(state, active.id)} metric={trendMetric} onMetric={setTrendMetric} />
         ) : page === "/actividades" ? (
-          <ActivitiesPage log={crewLog.log} day={day} onAction={crewLog.onAction} pending={crewLog.pending} />
+          <ActivitiesPage log={crewLog.log} day={day} onAction={crewLog.onAction} pending={crewLog.pending} publicSite={PUBLIC_SITE} />
         ) : page === "/fuentes" ? (
           <SourcesPage />
         ) : (

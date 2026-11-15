@@ -14,7 +14,7 @@ function load() {
   return { remote: EMPTY_LOG, pending: [] };
 }
 
-export default function useCrewLog(connected) {
+export default function useCrewLog(connected, localOnly = false) {
   const [store, setStore] = useState(load);
   const [storageError, setStorageError] = useState(false);
 
@@ -28,7 +28,7 @@ export default function useCrewLog(connected) {
   }, [store]);
 
   useEffect(() => {
-    if (!connected) return;
+    if (!connected || localOnly) return;
     const controller = new AbortController();
     let timer;
 
@@ -54,11 +54,13 @@ export default function useCrewLog(connected) {
       controller.abort();
       window.clearTimeout(timer);
     };
-  }, [connected, store.pending]);
+  }, [connected, localOnly, store.pending]);
 
   function onAction(action) {
     const event = { ...action, eventId: crypto.randomUUID() };
-    setStore((current) => ({ ...current, pending: [...current.pending, event] }));
+    setStore((current) => localOnly
+      ? { ...current, remote: applyLogAction(current.remote, event) }
+      : { ...current, pending: [...current.pending, event] });
   }
 
   return { log: store.pending.reduce(applyLogAction, store.remote), pending: store.pending.length, onAction, storageError };

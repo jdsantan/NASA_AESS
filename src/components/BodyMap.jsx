@@ -21,7 +21,7 @@ export default function BodyMap({ statuses, selected, onSelect }) {
     <section className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
       <div className="flex items-start justify-between gap-2">
         <h2 className="font-semibold text-slate-900">Mapa de salud</h2>
-        <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-xs font-medium text-slate-600">Simulación</span>
+        <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-xs font-medium text-slate-600">Datos de referencia</span>
       </div>
       <div className="mt-3 grid overflow-hidden rounded-xl border border-slate-200 bg-slate-50/70 sm:grid-cols-[minmax(0,1fr)_minmax(0,0.8fr)]">
         <svg

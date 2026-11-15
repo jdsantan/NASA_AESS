@@ -1,19 +1,20 @@
+import { stripCitation } from "../utils/telemetryLogic.js";
 import React from "react";
 import { CheckCircle2, ShieldAlert } from "lucide-react";
-import { BUTTON, FIELDS, MISSIONS, PANEL, SCENARIOS, TASKS, TOOLS } from "../data/astriaConfig";
+import { BUTTON, FIELDS, MISSIONS, PANEL, SCENARIOS, TOOLS } from "../data/astriaConfig";
 import Badge from "./Badge";
 
 export default function TriageSidebar({
-  alerts, missing, checked, pendingCount, deliveredCount, latest,
-  onOpenGuide, onMarkTask, onSaveReport,
+  alerts, missing, pendingCount, deliveredCount, latest, publicSite,
+  onOpenGuide, onSaveReport, children,
 }) {
   return (
     <aside className="grid min-w-0 gap-5" aria-label="Revisión y contramedidas">
       <section className={PANEL} aria-labelledby="triage-title">
         <h2 id="triage-title" className="flex items-center gap-2 text-lg font-semibold text-slate-900">
-          <ShieldAlert size={20} className="text-blue-600" aria-hidden="true" /> Triaje de simulación
+          <ShieldAlert size={20} className="text-blue-600" aria-hidden="true" /> Revisión de indicadores
         </h2>
-        <p className="mt-1 text-xs text-slate-500">Reglas de demostración frente a una referencia sintética.</p>
+        <p className="mt-1 text-xs text-slate-500">Comparación con las lecturas de referencia del caso.</p>
         {missing.length > 0 && (
           <p className="mt-3 text-xs font-medium text-amber-700" role="status">
             Sin datos: {missing.map((f) => f.label).join(", ")}.
@@ -23,7 +24,7 @@ export default function TriageSidebar({
           {alerts.length === 0 && (
             <p className="flex gap-2 text-sm font-medium text-emerald-700">
               <CheckCircle2 size={18} aria-hidden="true" className="text-emerald-600" />
-              {missing.length ? "Lecturas disponibles sin cambios destacados." : "Lecturas dentro de la referencia simulada."}
+              {missing.length ? "Lecturas disponibles sin cambios destacados." : "Lecturas dentro de la referencia del caso."}
             </p>
           )}
           {alerts.map((alert) => (
@@ -33,7 +34,7 @@ export default function TriageSidebar({
                 <Badge level={alert.level} />
               </div>
               <details className="mt-2 text-sm">
-                <summary className="cursor-pointer rounded font-semibold focus-visible:outline-2 focus-visible:outline-offset-2">Ver orientación de simulación</summary>
+                <summary className="cursor-pointer rounded font-semibold focus-visible:outline-2 focus-visible:outline-offset-2">Ver pasos de revisión</summary>
                 <p className="mt-2 leading-relaxed text-slate-700">
                   Confirma las lecturas y registra su contexto. Consulta al responsable médico o de operaciones según el aviso y revisa el procedimiento vigente de la misión.
                 </p>
@@ -46,36 +47,19 @@ export default function TriageSidebar({
         </button>
       </section>
 
-      <section className={PANEL}>
-        <h2 className="flex items-center gap-2 text-lg font-semibold text-slate-900">
-          <CheckCircle2 size={20} className="text-blue-600" aria-hidden="true" /> Rutinas diarias
-        </h2>
-        <div className="mt-3 grid gap-2">
-          {TASKS.map(([key, title]) => (
-            <label key={key} className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 p-2.5 text-sm font-medium text-slate-700">
-              <input
-                type="checkbox"
-                className="h-4 w-4 shrink-0 accent-blue-600"
-                checked={checked.includes(key)}
-                onChange={() => onMarkTask(key)}
-              />
-              {title}
-            </label>
-          ))}
-        </div>
-      </section>
+      {children}
 
       <section className={PANEL}>
-        <h2 className="text-lg font-semibold text-slate-900">Reportes de misión</h2>
+        <h2 className="text-lg font-semibold text-slate-900">Registro de misión</h2>
         <button type="button" className={`mt-3 w-full ${BUTTON}`} onClick={onSaveReport}>
-          Registrar reporte
+          Guardar registro
         </button>
         <div aria-live="polite" className="mt-3 space-y-2 text-xs text-slate-600">
-          <p>{pendingCount} pendientes · {deliveredCount} recibidos en servidor</p>
+          <p>{publicSite ? "Los registros se guardan en este navegador." : <>{pendingCount} pendientes · {deliveredCount} recibidos en servidor</>}</p>
           {latest && (
             <details className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5">
               <summary className="cursor-pointer font-semibold text-slate-800">
-                Último reporte · {({ pending: "Pendiente", local: "Historial local", delivered: "Recibido en servidor" })[latest.status]}
+                Último reporte · {({ pending: "Pendiente", local: "Guardado en este navegador", delivered: "Recibido en servidor" })[latest.status]}
               </summary>
               <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-2">
                 <div className="col-span-2">
@@ -89,7 +73,7 @@ export default function TriageSidebar({
                   </div>
                 ))}
                 {latest.findings?.length > 0 && (
-                  <div className="col-span-2"><dt className="text-slate-500">Avisos</dt><dd className="font-semibold text-amber-800">{latest.findings.join(" · ")}</dd></div>
+                  <div className="col-span-2"><dt className="text-slate-500">Avisos</dt><dd className="font-semibold text-amber-800">{latest.findings.map(stripCitation).join(" · ")}</dd></div>
                 )}
                 {latest.image && (
                   <div className="col-span-2 break-words">

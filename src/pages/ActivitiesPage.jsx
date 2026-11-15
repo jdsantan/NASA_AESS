@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { MessageSquare, Plus, Trash2 } from "lucide-react";
+import { ChevronDown, MessageSquare, Plus, Trash2 } from "lucide-react";
 import { BUTTON, INPUT, LABEL, PANEL, TASKS } from "../data/astriaConfig.js";
 import { CREW } from "../data/crew.js";
 import { PageHeading } from "./MissionPages.jsx";
@@ -62,16 +62,15 @@ export function ActivityForm({ onAdd, member }) {
   );
 }
 
-export function MemberRoutines({ member, log, day, onAction }) {
+export function RoutineList({ member, log, day, onAction }) {
   const routines = activitiesFor(log, member.id, day);
-  const [removed, setRemoved] = useState("");
+  const [notice, setNotice] = useState(null);
+
   return (
-    <div className="mt-5 grid items-start gap-5 lg:grid-cols-2">
-      <section className={PANEL} aria-label="Rutinas diarias">
-        <h3 className="text-lg font-semibold">Rutinas diarias</h3>
-        <p className="mt-1 text-sm text-slate-600">{routines.filter(({ done }) => done).length} de {routines.length} completadas hoy</p>
-        {routines.length === 0 && <p className="mt-4 text-sm">Este integrante no tiene actividades asignadas.</p>}
-        <ul className="mt-4 grid gap-2">
+    <div>
+      <p className="text-sm text-slate-600">{routines.filter(({ done }) => done).length} de {routines.length} completadas hoy</p>
+      {routines.length === 0 ? <p className="mt-3 text-sm">Este integrante no tiene actividades asignadas.</p> : (
+        <ul className="mt-3 grid gap-2">
           {routines.map(({ id, title, description, done }) => (
             <li key={id} className="flex items-start justify-between gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3">
               <label className="flex min-w-0 items-start gap-2">
@@ -80,19 +79,33 @@ export function MemberRoutines({ member, log, day, onAction }) {
                 <span className="min-w-0 break-words text-sm">
                   <span className="font-semibold">{title}</span>
                   {description && <span className="mt-1 block text-slate-600">{description}</span>}
+                  <span className={`mt-1 block text-xs font-medium ${done ? "text-emerald-800" : "text-slate-600"}`}>
+                    {done ? "Completada" : "Pendiente"}
+                  </span>
                 </span>
               </label>
               <button type="button" className={`shrink-0 ${BUTTON}`} aria-label={`Eliminar ${title}`}
                 onClick={() => {
                   onAction({ type: "remove", member: member.id, id });
-                  setRemoved(`Se quitó «${title}» para ${member.name}.`);
+                  setNotice({ member: member.id, text: `Se quitó «${title}» para ${member.name}.` });
                 }}>
                 <Trash2 size={15} aria-hidden="true" />
               </button>
             </li>
           ))}
         </ul>
-        <p role="status" className="mt-2 text-sm text-slate-600">{removed}</p>
+      )}
+      <p role="status" className="mt-2 text-sm text-slate-600">{notice?.member === member.id ? notice.text : ""}</p>
+    </div>
+  );
+}
+
+export function MemberRoutines({ member, log, day, onAction }) {
+  return (
+    <div className="mt-5 grid items-start gap-5 lg:grid-cols-2">
+      <section className={PANEL} aria-label="Rutinas diarias">
+        <h3 className="mb-1 text-lg font-semibold">Rutinas diarias</h3>
+        <RoutineList member={member} log={log} day={day} onAction={onAction} />
       </section>
       <ActivityForm member={member} onAdd={onAction} />
     </div>
@@ -150,10 +163,11 @@ function CrewComments({ comments, onAction }) {
   );
 }
 
-export function ActivitiesPage({ log, day, onAction, pending }) {
+export function ActivitiesPage({ log, day, onAction, pending, publicSite }) {
   return (
     <>
-      <PageHeading title="Actividades y retroalimentación" description="Asigna actividades y consulta las observaciones de la tripulación simulada." />
+      <PageHeading title="Actividades y retroalimentación" description="Asigna actividades y consulta las observaciones de la tripulación." />
+      {publicSite && <p className="mb-4 text-sm text-slate-600">Las actividades y los comentarios de esta sesión se guardan en este navegador.</p>}
       {pending > 0 && <p role="status" className="mb-4 text-sm text-amber-800">{pending} cambios de la bitácora pendientes de sincronizar.</p>}
       <div className="grid items-start gap-5 lg:grid-cols-2">
         <div className="grid gap-5">
@@ -163,10 +177,19 @@ export function ActivitiesPage({ log, day, onAction, pending }) {
             <ul className="mt-3 grid gap-2">
               {CREW.map((member) => (
                 <li key={member.id}>
-                  <a className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold hover:bg-blue-50" href={`#/integrantes/${member.id}`}>
-                    {member.name}
-                    <span className="font-normal text-slate-600">{activitiesFor(log, member.id, day).length} asignadas</span>
-                  </a>
+                  <details className="group rounded-lg border border-slate-200">
+                    <summary className="flex cursor-pointer list-none flex-wrap items-center gap-x-3 gap-y-1 rounded-lg px-3 py-2 text-sm font-semibold hover:bg-blue-50 focus-visible:outline-2 focus-visible:outline-blue-600 [&::-webkit-details-marker]:hidden">
+                      <span className="mr-auto">{member.name}</span>
+                      <span className="font-normal text-slate-600">{activitiesFor(log, member.id, day).length} asignadas</span>
+                      <ChevronDown size={16} className="text-blue-700 transition group-open:rotate-180" aria-hidden="true" />
+                    </summary>
+                    <div className="border-t border-slate-200 px-3 py-3">
+                      <RoutineList member={member} log={log} day={day} onAction={onAction} />
+                      <a className="mt-2 inline-flex rounded text-sm font-semibold text-blue-800 hover:underline focus-visible:outline-2 focus-visible:outline-blue-600" href={`#/integrantes/${member.id}`}>
+                        Ver perfil de {member.name}
+                      </a>
+                    </div>
+                  </details>
                 </li>
               ))}
             </ul>

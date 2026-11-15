@@ -1,18 +1,23 @@
 import { randomUUID } from "node:crypto";
+import { CREW } from "../../src/data/crew.js";
 import { BASELINE } from "../config/baseline.js";
 import { evaluateTriage } from "../services/triageService.js";
 import { readDB, writeDB } from "../utils/fileDb.js";
 
 const MISSIONS = new Set(["iss", "transit", "moon", "mars"]);
 const SCENARIOS = new Set(["nominal", "solar", "sans", "oxygen", "fatigue"]);
+const MEMBERS = new Set(CREW.map(({ id }) => id));
+const SOURCES = new Set(["reference", "manual", "auto", "mixed"]);
 const TASKS = new Set(["exercise", "nutrition", "journal", "eva"]);
 const isRecord = (value) => Boolean(value && typeof value === "object" && !Array.isArray(value));
 
 function parseReport(payload, needsId) {
   if (!isRecord(payload) || !isRecord(payload.values)) return null;
-  const { id = needsId ? "" : randomUUID(), created, mission, scenario, values, checked = [], image } = payload;
+  const { id = needsId ? "" : randomUUID(), created, mission, scenario, values, checked = [], image, memberId, source } = payload;
   if (typeof id !== "string" || !/^[a-zA-Z0-9_-]{1,100}$/.test(id)) return null;
   if (!MISSIONS.has(mission) || !SCENARIOS.has(scenario)) return null;
+  if (memberId !== undefined && !MEMBERS.has(memberId)) return null;
+  if (source !== undefined && !SOURCES.has(source)) return null;
   if (!Array.isArray(checked) || !checked.every((task) => TASKS.has(task))) return null;
   if (created !== undefined && (typeof created !== "string" || !Number.isFinite(Date.parse(created)))) return null;
 
@@ -22,7 +27,7 @@ function parseReport(payload, needsId) {
     if (value !== "" && (typeof value !== "number" || !Number.isFinite(value) || value < 0)) return null;
     readings[field] = value;
   }
-  if (values.mood !== undefined && !["estable", "bajo"].includes(values.mood)) return null;
+  if (values.mood !== undefined && !["estable", "bajo", "fatiga", "estrés"].includes(values.mood)) return null;
   if (values.visual !== undefined && typeof values.visual !== "boolean") return null;
   readings.mood = values.mood ?? "estable";
   readings.visual = values.visual ?? false;
@@ -38,6 +43,8 @@ function parseReport(payload, needsId) {
   const alerts = evaluateTriage(readings, scenario, checked);
   return {
     id, created: created ?? new Date().toISOString(), mission, scenario, values: readings,
+    ...(memberId === undefined ? {} : { memberId }),
+    ...(source === undefined ? {} : { source }),
     findings: alerts.map((alert) => alert.title), alerts, status: "delivered", image: imageRecord,
   };
 }
