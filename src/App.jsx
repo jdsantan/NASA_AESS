@@ -9,6 +9,7 @@ import BodyMap from "./components/BodyMap";
 import TriageSidebar from "./components/TriageSidebar";
 import Badge from "./components/Badge";
 import GuideModal from "./components/GuideModal";
+import HardStopModal from "./components/HardStopModal.jsx";
 import { PUBLIC_SITE } from "./data/edition.js";
 import ReportHistory from "./components/ReportHistory.jsx";
 import { CREW } from "./data/crew.js";
@@ -35,6 +36,7 @@ export default function App() {
   const [state, setState] = useState(() => initializeReadings(initialState()));
   const [selected, setSelected] = useState("neuro");
   const [live, setLive] = useState(false);
+  const [resolvedHardStopKeys, setResolvedHardStopKeys] = useState([]);
   const [trendMetric, setTrendMetric] = useState("radiation");
   const [day, setDay] = useState(dateKey);
   const [image, setImage] = useState(null);
@@ -54,6 +56,11 @@ export default function App() {
   });
   const member = crew.find(({ id }) => page === "/integrantes/" + id);
   const reading = readingsFor(state, active);
+  const pendingHardStop = crew
+    .flatMap((crewMember) => crewMember.alerts
+      .filter(({ level }) => level === "critical")
+      .map((alert) => ({ key: crewMember.id + "|" + alert.title, member: crewMember, alert })))
+    .find(({ key }) => !resolvedHardStopKeys.includes(key));
 
   const isRegister = page === "/registro" || page === "/simulador";
 
@@ -334,6 +341,14 @@ export default function App() {
       </main>
 
       <GuideModal dialogRef={guide} />
+      {page === "/" && pendingHardStop && (
+        <HardStopModal
+          key={pendingHardStop.key}
+          member={pendingHardStop.member}
+          alert={pendingHardStop.alert}
+          onResolve={() => setResolvedHardStopKeys((resolvedKeys) => [...resolvedKeys, pendingHardStop.key])}
+        />
+      )}
     </div>
   );
 }
