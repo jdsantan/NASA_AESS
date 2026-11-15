@@ -48,7 +48,7 @@ export default function AcquisitionSidebar({
             <img
               src={image.url}
               alt={`Vista previa de ${image.name}`}
-              className="max-h-44 w-full rounded-lg border border-slate-200 bg-slate-100 object-contain"
+              className="max-h-44 w-full rounded-md border border-slate-900/10 bg-slate-100 object-contain"
               onError={onImageLoadError}
             />
             <label className={`mt-3 ${LABEL}`}>

@@ -3,14 +3,18 @@ import { CREW } from "../data/crew.js";
 
 const FIRST_MEMBER = CREW[0].id;
 const MAX_POINTS = 180;
-const variation = [0, 1, 0, -1, 1, 2, 1, 0];
+const HEART_RATE_STEPS = [0, 1, 0, -1, 0, -1, 0, 1];
+const CABIN_OXYGEN_WAVE = [0, 0.5, 1, 0.5, 0, -0.5, -1, -0.5];
+const CABIN_OXYGEN_AMPLITUDE = 0.05;
+const RADIATION_INCREMENT_PER_SAMPLE = 0.01;
+const MAX_RADIATION_DOSE = 5000;
 
 function round(value, digits) {
   return Number(value.toFixed(digits));
 }
 
 export function cabinFor(state) {
-  if (Number.isFinite(state.cabin?.oxygen)) return state.cabin;
+  if (Number.isFinite(state.cabin?.oxygen) || state.cabin?.oxygen === "") return state.cabin;
   const legacy = state.memberReadings?.[FIRST_MEMBER]?.values.oxygen ?? state.values?.oxygen;
   const oxygen = Number.isFinite(legacy) ? legacy : BASELINE.oxygen;
   return { oxygen, reference: oxygen < CABIN_OXYGEN_REFERENCE ? SCENARIOS.oxygen.values.oxygen : BASELINE.oxygen, index: 0 };
@@ -85,27 +89,40 @@ export function updateMemberReading(state, member, update, time) {
   };
 }
 
-export function sampleTelemetry(state, member, now = new Date()) {
+export function updateCabinOxygen(state, oxygen, time) {
+  const cabin = cabinFor(state);
+  const reference = Number.isFinite(oxygen) ? oxygen : cabin.reference;
+  return setCabin(state, { ...cabin, oxygen, reference, index: 0 }, time);
+}
+
+function sampleMemberReading(reading, time) {
+  const reference = { ...BASELINE, ...SCENARIOS[reading.scenario].values };
+  const sampleIndex = reading.sampleIndex + 1;
+  const { heart: currentHeartRate, radiation: currentRadiation } = reading.values;
+  const heartRate = Number.isFinite(currentHeartRate) ? currentHeartRate : reference.heart;
+  const radiationDose = Number.isFinite(currentRadiation) ? currentRadiation : reference.radiation;
+
+  return {
+    ...reading, sampleIndex, lastSample: time,
+    values: {
+      ...reading.values,
+      heart: heartRate + HEART_RATE_STEPS[sampleIndex % HEART_RATE_STEPS.length],
+      radiation: round(Math.min(radiationDose + RADIATION_INCREMENT_PER_SAMPLE, MAX_RADIATION_DOSE), 2),
+    },
+  };
+}
+
+export function sampleTelemetry(state, now = new Date()) {
   const time = now.toISOString();
   const cabin = cabinFor(state);
   const index = cabin.index + 1;
-  const oxygen = round(cabin.reference + variation[index % variation.length] * 0.04, 2);
-  const next = setCabin(state, { ...cabin, index, oxygen }, time);
+  const oxygen = round(cabin.reference + CABIN_OXYGEN_WAVE[index % CABIN_OXYGEN_WAVE.length] * CABIN_OXYGEN_AMPLITUDE, 2);
+  const stateWithCabinSample = setCabin(state, { ...cabin, index, oxygen }, time);
 
-  return updateMemberReading(next, member, (reading) => {
-    const reference = { ...BASELINE, ...SCENARIOS[reading.scenario].values };
-    const sampleIndex = reading.sampleIndex + 1;
-    const change = variation[sampleIndex % variation.length];
-    return {
-      ...reading, sampleIndex, lastSample: time,
-      values: {
-        ...reading.values,
-        heart: reference.heart + change,
-        sleep: round(reference.sleep + change * 0.02, 2),
-        radiation: round(Math.min((Number.isFinite(reading.values.radiation) ? reading.values.radiation : reference.radiation) + 0.00002, 5000), 5),
-      },
-    };
-  }, time);
+  return CREW.reduce(
+    (nextState, crewMember) => updateMemberReading(nextState, crewMember, (reading) => sampleMemberReading(reading, time), time),
+    stateWithCabinSample,
+  );
 }
 
 export function applyScenario(state, member, scenario, now = new Date()) {

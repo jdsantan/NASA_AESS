@@ -4,7 +4,7 @@ import { BUTTON } from "../data/astriaConfig";
 
 export default function GuideModal({ dialogRef }) {
   return (
-    <dialog ref={dialogRef} aria-labelledby="guide-title" className="m-auto w-[min(94vw,32rem)] rounded-2xl border border-slate-200 bg-white p-6 text-slate-900 shadow-2xl backdrop:bg-slate-900/50">
+    <dialog ref={dialogRef} aria-labelledby="guide-title" className="m-auto w-[min(94vw,32rem)] rounded-lg border border-slate-900/10 bg-white p-6 text-slate-900 shadow-2xl backdrop:bg-slate-900/50">
       <div className="flex items-center justify-between gap-4">
         <h2 id="guide-title" className="text-xl font-bold text-slate-900">Guía de autoexamen</h2>
         <form method="dialog">

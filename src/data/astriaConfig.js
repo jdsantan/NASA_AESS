@@ -1,10 +1,10 @@
 import { Bone, Brain, Heart, Wind } from "lucide-react";
 
 export const STORAGE = "astria-monitor-v1";
-export const PANEL = "rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5 text-slate-900";
-export const LABEL = "block text-xs font-semibold uppercase tracking-wider text-slate-500";
-export const INPUT = "mt-1.5 w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-blue-600 focus:bg-white focus:ring-2 focus:ring-blue-600/20";
-export const BUTTON = "rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-2xs transition hover:border-blue-600 hover:bg-blue-50/60 hover:text-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:opacity-50";
+export const PANEL = "rounded-lg border border-slate-900/15 bg-white p-4 text-slate-900 shadow-[0_1px_0_rgb(15_23_42/0.04)] sm:p-5";
+export const LABEL = "block text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500";
+export const INPUT = "mt-1.5 w-full rounded-md border border-slate-900/20 bg-white px-3 py-2 text-sm font-medium normal-case tracking-normal text-slate-900 outline-none transition hover:border-slate-900/35 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20";
+export const BUTTON = "rounded-md border border-slate-900/20 bg-white px-3 py-2 text-sm font-semibold text-slate-800 transition hover:border-blue-600 hover:bg-blue-50 hover:text-blue-800 active:translate-y-px focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:pointer-events-none disabled:opacity-50";
 export const MISSIONS = {
   iss: { name: "Estación Espacial · ISS", delay: 0, latency: "0 s (redondeado)", gravity: "≈ 0 g" },
   transit: { name: "Nave en tránsito", delay: 720, latency: "12 min", gravity: "≈ 0 g" },
@@ -16,7 +16,7 @@ export const CABIN_OXYGEN_REFERENCE = 19.5;
 
 export const BASELINE = {
   heart: 68, systolic: 116, diastolic: 75, glucose: 92, temperature: 36.7,
-  sleep: 7.8, radiation: 7, oxygen: 21, mood: "estable", visual: false,
+  sleep: 7.8, radiation: 7, oxygen: 20.9, mood: "estable", visual: false,
 };
 
 export const SCENARIOS = {
@@ -72,4 +72,16 @@ export const TOOLS = {
   ok: { text: "Óptimo", tone: "border-emerald-500/40 bg-emerald-50 text-emerald-800" },
   warn: { text: "Precaución", tone: "border-amber-500/40 bg-amber-50 text-amber-900" },
   critical: { text: "Crítico", tone: "border-rose-500/40 bg-rose-50 text-rose-800" },
+};
+
+export const INSTRUMENT_PANEL = "rounded-lg border border-slate-900/15 bg-white text-slate-900 shadow-[0_1px_0_rgb(15_23_42/0.04)]";
+export const READOUT_TILE = "min-w-0 rounded-md border border-slate-900/10 bg-slate-50";
+export const READOUT_VALUE = "font-mono font-semibold tabular-nums tracking-tight text-slate-950";
+export const PRIMARY_BUTTON = "inline-flex items-center rounded-md border border-blue-700 bg-blue-600 px-4 py-2 text-sm font-semibold text-slate-50 transition hover:bg-blue-700 active:translate-y-px focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600";
+export const INSTRUMENT_LABEL = "text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500";
+
+export const STATUS_SIGNAL = {
+  ok: { marker: "bg-emerald-500", ruleTop: "border-t-emerald-500", ruleLeft: "border-l-emerald-500", text: "text-emerald-700", tint: "bg-white" },
+  warn: { marker: "bg-amber-500", ruleTop: "border-t-amber-500", ruleLeft: "border-l-amber-500", text: "text-amber-800", tint: "bg-amber-50" },
+  critical: { marker: "bg-rose-500", ruleTop: "border-t-rose-500", ruleLeft: "border-l-rose-500", text: "text-rose-700", tint: "bg-rose-50" },
 };

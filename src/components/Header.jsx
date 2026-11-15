@@ -6,16 +6,16 @@ export default function Header({
   state, mission, readiness, checkedCount, assignedCount, streak, apiOnline, storageError, onToggleLink, onChangeMission, showReadiness, publicSite,
 }) {
   return (
-    <header className="border-b border-slate-200 bg-white shadow-2xs">
+    <header className="border-b border-slate-900/15 bg-white">
       <div className="mx-auto max-w-7xl px-4 py-5 sm:px-8">
         <div className="flex flex-wrap items-start justify-between gap-5">
           <div className="flex items-center gap-3">
-            <div className="rounded-xl border border-blue-200 bg-blue-50 p-2.5 text-blue-600">
+            <div className="rounded-md border border-blue-600/25 bg-blue-50 p-2.5 text-blue-700">
               <Activity size={27} aria-hidden="true" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">ASTRIA</h1>
-              <p className="mt-1 text-sm font-medium text-slate-600">Centro de seguimiento de misión</p>
+              <h1 className="text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">ASTRIA</h1>
+              <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">Centro de seguimiento de misión</p>
             </div>
           </div>
           {!publicSite && <div className="flex flex-wrap items-center gap-2">
@@ -36,8 +36,8 @@ export default function Header({
             </select>
           </label>
 
-          <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
-            <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
+          <div className="rounded-md border border-slate-900/10 bg-slate-50 px-3 py-2.5">
+            <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
               <Clock size={14} aria-hidden="true" className="text-blue-600" /> Latencia estimada por trayecto
             </p>
             <p className="mt-1 font-mono text-sm font-semibold text-blue-700">
@@ -46,20 +46,20 @@ export default function Header({
           </div>
 
           {showReadiness && (
-            <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 sm:col-span-2 xl:col-span-1">
-              <div className="flex justify-between gap-2 text-xs font-semibold uppercase tracking-wider text-slate-600">
+            <div className="rounded-md border border-slate-900/10 bg-slate-50 px-3 py-2.5 sm:col-span-2 xl:col-span-1">
+              <div className="flex justify-between gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
                 <span className="flex items-center gap-2"><Award size={15} aria-hidden="true" className="text-blue-600" /> Preparación de misión</span>
                 <b className="font-mono text-blue-700">{readiness}%</b>
               </div>
               <progress aria-label="Preparación de misión" className="mt-2 block h-2 w-full accent-blue-600" value={readiness} max={100} />
-              <p className="mt-1 text-xs text-slate-500">
+              <p className="mt-1 font-mono text-[11px] tabular-nums text-slate-500">
                 {checkedCount}/{assignedCount} rutinas · Racha de {streak} {streak === 1 ? "día" : "días"}
               </p>
             </div>
           )}
         </div>
 
-        <p className="mt-4 text-xs font-medium text-slate-600" role="status">
+        <p className="mt-4 font-mono text-[11px] text-slate-600" role="status">
           Perfiles ficticios · Lecturas de ejemplo
           {publicSite ? <span> · Los cambios se guardan en este navegador</span> : <>
           <span className="sr-only">Estado de conexión</span> <span className="px-2 text-slate-300">·</span>

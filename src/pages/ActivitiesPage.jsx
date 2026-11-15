@@ -47,7 +47,7 @@ export function ActivityForm({ onAdd, member }) {
           <legend className={LABEL}>Asignar a</legend>
           <div className="mt-2 grid gap-2 sm:grid-cols-2">
             {CREW.map(({ id, name }) => (
-              <label key={id} className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm">
+              <label key={id} className="flex items-center gap-2 rounded-md border border-slate-900/10 px-3 py-2 text-sm">
                 <input type="checkbox" className="accent-blue-600" checked={chosen.includes(id)}
                   onChange={(event) => setChosen(event.target.checked ? [...chosen, id] : chosen.filter((item) => item !== id))} />
                 {name}
@@ -72,7 +72,7 @@ export function RoutineList({ member, log, day, onAction }) {
       {routines.length === 0 ? <p className="mt-3 text-sm">Este integrante no tiene actividades asignadas.</p> : (
         <ul className="mt-3 grid gap-2">
           {routines.map(({ id, title, description, done }) => (
-            <li key={id} className="flex items-start justify-between gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3">
+            <li key={id} className="flex items-start justify-between gap-2 rounded-md border border-slate-900/10 bg-slate-50 p-3">
               <label className="flex min-w-0 items-start gap-2">
                 <input type="checkbox" className="mt-1 accent-blue-600" checked={done}
                   onChange={(event) => onAction({ type: "check", member: member.id, day, id, done: event.target.checked })} />
@@ -144,11 +144,11 @@ function CrewComments({ comments, onAction }) {
         </label>
         <button className={`mt-3 ${BUTTON}`} disabled={!text.trim()}>Publicar en la bitácora</button>
       </form>
-      <h4 className="mt-5 border-t border-slate-200 pt-4 text-sm font-semibold">Historial de comentarios</h4>
+      <h4 className="mt-5 border-t border-slate-900/10 pt-4 text-sm font-semibold">Historial de comentarios</h4>
       {comments.length ? (
         <ol className="mt-3 grid gap-3">
           {comments.map((comment) => (
-            <li key={comment.id} className="min-w-0 rounded-lg border border-slate-200 bg-slate-50 p-3">
+            <li key={comment.id} className="min-w-0 rounded-md border border-slate-900/10 bg-slate-50 p-3">
               <div className="flex flex-wrap items-center justify-between gap-1">
                 <span className="text-sm font-semibold">{names[comment.author]}</span>
                 <time className="text-xs text-slate-600" dateTime={comment.created}>{new Date(comment.created).toLocaleString("es", { dateStyle: "medium", timeStyle: "short" })}</time>
@@ -177,13 +177,13 @@ export function ActivitiesPage({ log, day, onAction, pending, publicSite }) {
             <ul className="mt-3 grid gap-2">
               {CREW.map((member) => (
                 <li key={member.id}>
-                  <details className="group rounded-lg border border-slate-200">
-                    <summary className="flex cursor-pointer list-none flex-wrap items-center gap-x-3 gap-y-1 rounded-lg px-3 py-2 text-sm font-semibold hover:bg-blue-50 focus-visible:outline-2 focus-visible:outline-blue-600 [&::-webkit-details-marker]:hidden">
+                  <details className="group rounded-md border border-slate-900/10">
+                    <summary className="flex cursor-pointer list-none flex-wrap items-center gap-x-3 gap-y-1 rounded-md px-3 py-2 text-sm font-semibold hover:bg-blue-50 focus-visible:outline-2 focus-visible:outline-blue-600 [&::-webkit-details-marker]:hidden">
                       <span className="mr-auto">{member.name}</span>
                       <span className="font-normal text-slate-600">{activitiesFor(log, member.id, day).length} asignadas</span>
                       <ChevronDown size={16} className="text-blue-700 transition group-open:rotate-180" aria-hidden="true" />
                     </summary>
-                    <div className="border-t border-slate-200 px-3 py-3">
+                    <div className="border-t border-slate-900/10 px-3 py-3">
                       <RoutineList member={member} log={log} day={day} onAction={onAction} />
                       <a className="mt-2 inline-flex rounded text-sm font-semibold text-blue-800 hover:underline focus-visible:outline-2 focus-visible:outline-blue-600" href={`#/integrantes/${member.id}`}>
                         Ver perfil de {member.name}

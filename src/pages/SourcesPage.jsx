@@ -35,7 +35,7 @@ export default function SourcesPage() {
         {SOURCES.map(([group, sources]) => (
           <section key={group} className={PANEL}>
             <h3 className="flex items-center gap-2 font-semibold"><BookOpen size={18} className="shrink-0 text-blue-700" aria-hidden="true" />{group}</h3>
-            <ul className="mt-3 divide-y divide-slate-200">
+            <ul className="mt-3 divide-y divide-slate-900/10">
               {sources.map(([title, url]) => (
                 <li key={url}>
                   <a href={url} target="_blank" rel="noreferrer" className="flex items-start justify-between gap-2 rounded py-3 text-sm font-medium text-blue-800 hover:underline focus-visible:outline-2 focus-visible:outline-blue-600">

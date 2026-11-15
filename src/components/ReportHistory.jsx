@@ -24,14 +24,14 @@ export default function ReportHistory({ reports }) {
           <Download size={16} aria-hidden="true" /> Descargar JSON
         </button>
       </div>
-      <ul className="mt-3 divide-y divide-slate-200">
+      <ul className="mt-3 divide-y divide-slate-900/10">
         {reports.slice(0, 8).map((report) => (
           <li key={report.id} className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
             <span>
               {CREW.find(({ id }) => id === report.memberId)?.name ?? "Registro de misión"} ·{" "}
               {({ manual: "Entrada manual", reference: "Caso de referencia", mixed: "Telemetría de ejemplo y entrada manual", auto: "Telemetría de ejemplo" })[report.source] ?? "Registro anterior"}
             </span>
-            <time className="text-slate-600" dateTime={report.created}>{dateFormat.format(new Date(report.created))}</time>
+            <time className="font-mono text-xs tabular-nums text-slate-500" dateTime={report.created}>{dateFormat.format(new Date(report.created))}</time>
           </li>
         ))}
       </ul>

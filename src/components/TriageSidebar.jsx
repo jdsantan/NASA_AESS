@@ -3,6 +3,7 @@ import React from "react";
 import { CheckCircle2, ShieldAlert } from "lucide-react";
 import { BUTTON, FIELDS, MISSIONS, PANEL, SCENARIOS, TOOLS } from "../data/astriaConfig";
 import Badge from "./Badge";
+import AlertProtocol from "./AlertProtocol.jsx";
 
 export default function TriageSidebar({
   alerts, missing, pendingCount, deliveredCount, latest, publicSite,
@@ -28,16 +29,14 @@ export default function TriageSidebar({
             </p>
           )}
           {alerts.map((alert) => (
-            <article key={alert.title} className={`rounded-xl border p-3 ${TOOLS[alert.level].tone}`}>
+            <article key={alert.title} className={`rounded-md border p-3 ${TOOLS[alert.level].tone}`}>
               <div className="flex items-start justify-between gap-2">
                 <h3 className="text-sm font-semibold">{alert.title}</h3>
                 <Badge level={alert.level} />
               </div>
               <details className="mt-2 text-sm">
                 <summary className="cursor-pointer rounded font-semibold focus-visible:outline-2 focus-visible:outline-offset-2">Ver pasos de revisión</summary>
-                <p className="mt-2 leading-relaxed text-slate-700">
-                  Confirma las lecturas y registra su contexto. Consulta al responsable médico o de operaciones según el aviso y revisa el procedimiento vigente de la misión.
-                </p>
+                <AlertProtocol protocol={alert.protocol} />
               </details>
             </article>
           ))}
@@ -57,7 +56,7 @@ export default function TriageSidebar({
         <div aria-live="polite" className="mt-3 space-y-2 text-xs text-slate-600">
           <p>{publicSite ? "Los registros se guardan en este navegador." : <>{pendingCount} pendientes · {deliveredCount} recibidos en servidor</>}</p>
           {latest && (
-            <details className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5">
+            <details className="rounded-md border border-slate-900/10 bg-slate-50 px-3 py-2.5">
               <summary className="cursor-pointer font-semibold text-slate-800">
                 Último reporte · {({ pending: "Pendiente", local: "Guardado en este navegador", delivered: "Recibido en servidor" })[latest.status]}
               </summary>

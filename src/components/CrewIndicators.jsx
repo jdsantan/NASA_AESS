@@ -1,5 +1,5 @@
 import { Activity } from "lucide-react";
-import { PANEL } from "../data/astriaConfig.js";
+import { PANEL, READOUT_TILE, READOUT_VALUE } from "../data/astriaConfig.js";
 
 const number = new Intl.NumberFormat("es", { maximumFractionDigits: 1 });
 
@@ -36,14 +36,14 @@ export default function CrewIndicators({ crew, oxygen }) {
         <Activity size={18} className="text-blue-700" aria-hidden="true" />
         Indicadores de la tripulación
       </h3>
-      <p className="mt-1 text-sm text-slate-600">Promedios de las lecturas disponibles. El oxígeno corresponde al sensor compartido de la cabina.</p>
-      <dl className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+      <p className="mt-1 text-sm text-slate-600">Promedios de las lecturas disponibles.</p>
+      <dl className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
         {metrics.map(([label, value, unit]) => (
-          <div key={label} className="min-w-0 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5">
+          <div key={label} className={`px-3 py-2.5 ${READOUT_TILE}`}>
             <dt className="text-xs font-semibold leading-snug text-slate-600">{label}</dt>
-            <dd className="mt-1 font-semibold tabular-nums text-slate-950">
-              {value === "—" ? <span className="text-sm font-normal text-slate-600">Sin datos</span> : (
-                <>{value} <span className="text-xs font-medium text-slate-600">{unit}</span></>
+            <dd className={`mt-1 text-lg ${READOUT_VALUE}`}>
+              {value === "—" ? <span className="font-sans text-sm font-normal text-slate-600">Sin datos</span> : (
+                <>{value} <span className="text-[11px] font-normal text-slate-500">{unit}</span></>
               )}
             </dd>
           </div>

@@ -1,3 +1,4 @@
+import { ALERT_PROTOCOLS } from "../data/alertProtocols.js";
 import { BASELINE, CABIN_OXYGEN_REFERENCE, MISSIONS, SCENARIOS, STORAGE } from "../data/astriaConfig.js";
 
 export function dateKey(date = new Date()) {
@@ -37,10 +38,15 @@ export function initialState() {
 
 export const stripCitation = (text) => text.replace(/\s*\[cite:[^\]]*\]|\s*``/gi, "");
 
+export const alertTitle = (alert) =>
+  alert.title.split(" (Fuente:")[0].replace(/\[cite:[^\]]+\]/g, "").trim();
+
 export function assess(values, scenario, checked) {
   const alerts = [];
-  const add = (group, level, title, steps, fields) =>
-    alerts.push({ group, level, title: stripCitation(title), steps: steps.map(stripCitation), fields });
+  const add = (group, level, title, steps, fields) => {
+    const cleanTitle = stripCitation(title);
+    alerts.push({ group, level, title: cleanTitle, steps: steps.map(stripCitation), fields, protocol: ALERT_PROTOCOLS[cleanTitle] });
+  };
   const number = (field) => values[field] === "" || values[field] == null ? null : Number(values[field]);
   const oxygen = number("oxygen");
   const radiation = number("radiation");

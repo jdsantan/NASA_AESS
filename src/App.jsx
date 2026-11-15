@@ -17,8 +17,9 @@ import { activitiesFor, ActivitiesPage, MemberRoutines, RoutineList } from "./pa
 import SourcesPage from "./pages/SourcesPage.jsx";
 import useCrewLog from "./hooks/useCrewLog.js";
 import CrewIndicators from "./components/CrewIndicators.jsx";
-import { applyScenario, cabinFor, historyForMember, initializeReadings, readingsFor, sampleTelemetry, updateMemberReading } from "./utils/sensorReadings.js";
+import { applyScenario, cabinFor, historyForMember, initializeReadings, readingsFor, sampleTelemetry, updateCabinOxygen, updateMemberReading } from "./utils/sensorReadings.js";
 
+const TELEMETRY_SAMPLE_INTERVAL_MS = 3000;
 const ROUTINE_IDS = new Set(TASKS.map(([id]) => id));
 
 function subscribeToPage(onChange) {
@@ -57,17 +58,13 @@ export default function App() {
   const isRegister = page === "/registro" || page === "/simulador";
 
   useEffect(() => {
-    if (!isRegister) {
-      setLive(false);
-      return;
-    }
     if (!live) return;
     const timer = window.setInterval(() => {
       const now = new Date();
-      setState((current) => sampleTelemetry(current, active, now));
-    }, 3000);
+      setState((current) => sampleTelemetry(current, now));
+    }, TELEMETRY_SAMPLE_INTERVAL_MS);
     return () => window.clearInterval(timer);
-  }, [isRegister, live, active]);
+  }, [live]);
   useEffect(() => {
     if (lastPage.current === page) return;
     lastPage.current = page;
@@ -225,9 +222,16 @@ export default function App() {
     live,
     lastSample: reading.lastSample,
     onToggleLive: () => setLive((current) => !current),
-    onUpdateValue: (key, val) => updateReading((current) => ({
-      ...current, source: "manual", values: { ...current.values, [key]: val },
-    }), new Date().toISOString()),
+    onUpdateValue: (key, val) => {
+      const time = new Date().toISOString();
+      if (key === "oxygen") {
+        setState((current) => updateCabinOxygen(current, val, time));
+        return;
+      }
+      updateReading((current) => ({
+        ...current, source: "manual", values: { ...current.values, [key]: val },
+      }), time);
+    },
   };
 
   const routinePanel = (
@@ -254,9 +258,8 @@ export default function App() {
           <>
             <PageHeading title="Dashboard de misión" back={null}>{activePicker}</PageHeading>
             <DashboardSummary mission={mission} scenario={scenario} alerts={alerts} missing={missing} activeName={active.name} pendingCount={pendingCount} savedCount={PUBLIC_SITE ? state.reports.length : undefined} crew={crew} />
-            <div className="mt-5 grid items-start gap-5 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
+            <div className="mt-5">
               <CrewIndicators crew={crew} oxygen={cabinFor(state).oxygen} />
-              {routinePanel}
             </div>
           </>
         ) : isRegister ? (
@@ -281,7 +284,7 @@ export default function App() {
                   }))}
                 />
 
-                <details className="group min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                <details className={`group min-w-0 ${PANEL}`}>
                   <summary className="cursor-pointer rounded font-semibold text-blue-800 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600">
                     Explorar mapa de lecturas
                   </summary>
