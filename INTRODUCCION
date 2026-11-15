@@ -1,0 +1,4 @@
+ASTRIA — Sistema de Monitoreo Biométrico y Triaje Médico Espacial
+Aplicación web full-stack diseñada para la supervisión en tiempo real del estado fisiológico de la tripulación y la toma de decisiones médicas en misiones espaciales. Integra visualización de telemetría de sensores, mapeo corporal interactivo, evaluación automatizada de triaje y protocolos de alerta crítica (Hard-Stop y gestión de emergencias).
+
+Tecnologías: React, Vite, Node.js, Express y arquitectura REST API.
